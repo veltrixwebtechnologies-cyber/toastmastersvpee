@@ -11,6 +11,7 @@ import {
   Sparkles,
   Users,
   Vote,
+  ChevronDown,
 } from 'lucide-react';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -718,6 +719,17 @@ function ScratchReveal() {
             <span>The person under the card</span>
             <h3>A listener before a leader.</h3>
             <p>I want to hear what members need, notice who is holding back, and turn education into moments people remember.</p>
+            {fullyRevealed && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6, duration: 0.6 }}
+                className="scroll-indicator-prompt"
+              >
+                <ChevronDown size={18} />
+                <span>Keep scrolling</span>
+              </motion.div>
+            )}
           </div>
         </div>
         <div className="scratch-sparks" aria-hidden="true">

@@ -391,6 +391,8 @@ function Vision() {
 function ScratchReveal() {
   const canvasRef = useRef(null);
   const cardRef = useRef(null);
+  const scratchEstimateRef = useRef(0);
+  const progressStateRef = useRef(0);
   const [scratched, setScratched] = useState(false);
   const [fullyRevealed, setFullyRevealed] = useState(false);
   const [scratchProgress, setScratchProgress] = useState(0);
@@ -456,6 +458,10 @@ function ScratchReveal() {
       ctx.fillStyle = 'rgba(251,191,36,0.9)';
       ctx.font = '750 12px Inter, sans-serif';
       ctx.fillText('partial scratch opens the whole card', rect.width / 2, rect.height / 2 + 20);
+
+      scratchEstimateRef.current = 0;
+      progressStateRef.current = 0;
+      setScratchProgress(0);
     };
 
     drawCover();
@@ -482,17 +488,17 @@ function ScratchReveal() {
 
     if (!scratched) setScratched(true);
 
-    const sample = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-    let transparentPixels = 0;
-    const stride = 24;
-    for (let index = 3; index < sample.length; index += 4 * stride) {
-      if (sample[index] < 20) transparentPixels += 1;
+    const totalArea = canvas.width * canvas.height;
+    const scratchArea = Math.PI * (38 * ratio) ** 2;
+    scratchEstimateRef.current += (scratchArea / totalArea) * 1.35;
+
+    const nextProgress = Math.min(100, Math.round(scratchEstimateRef.current * 100));
+    if (nextProgress !== progressStateRef.current) {
+      progressStateRef.current = nextProgress;
+      setScratchProgress(nextProgress);
     }
 
-    const nextProgress = transparentPixels / (sample.length / 4 / stride);
-    setScratchProgress(Math.min(100, Math.round(nextProgress * 100)));
-
-    if (nextProgress > 0.22) {
+    if (scratchEstimateRef.current > 0.22) {
       setFullyRevealed(true);
       canvas.classList.add('is-cleared');
       window.setTimeout(() => {
@@ -503,6 +509,10 @@ function ScratchReveal() {
 
   const handlePointerMove = (event) => {
     if (event.buttons !== 1 && event.pointerType !== 'touch') return;
+    scratchAt(event.clientX, event.clientY);
+  };
+
+  const handlePointerDown = (event) => {
     scratchAt(event.clientX, event.clientY);
   };
 
@@ -561,7 +571,7 @@ function ScratchReveal() {
         <canvas
           ref={canvasRef}
           className="scratch-canvas"
-          onPointerDown={(event) => scratchAt(event.clientX, event.clientY)}
+          onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
         />
       </motion.div>

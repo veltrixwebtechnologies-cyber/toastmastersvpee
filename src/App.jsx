@@ -226,7 +226,7 @@ function Opening({ onConnected }) {
 
   return (
     <header className="relative z-10">
-      <section className="scene opening-scene min-h-screen">
+      <section className="scene opening-scene min-h-screen relative">
         <div className="opening-greeting">
           <motion.div
             initial={{ opacity: 0 }}

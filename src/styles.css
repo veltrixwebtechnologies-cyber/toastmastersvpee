@@ -1114,6 +1114,26 @@ body {
   mask-image: linear-gradient(180deg, transparent, black 18%, black 78%, transparent);
 }
 
+.scroll-indicator-prompt {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 1.6rem;
+  padding: 0.5rem 0.9rem;
+  border-radius: 999px;
+  background: rgba(var(--cyan), 0.12);
+  color: rgba(var(--cyan), 0.9);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  animation: bounce-subtle 2s infinite;
+  cursor: pointer;
+  border: none;
+  outline: none;
+  pointer-events: auto;
+}
+
 .mic-drift {
   position: absolute;
   bottom: -12vh;

@@ -720,7 +720,8 @@ function ScratchReveal() {
             <h3>A listener before a leader.</h3>
             <p>I want to hear what members need, notice who is holding back, and turn education into moments people remember.</p>
             {fullyRevealed && (
-              <motion.div
+              <motion.button
+                onClick={() => document.getElementById('candidate-intro').scrollIntoView({ behavior: 'smooth' })}
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6, duration: 0.6 }}
@@ -728,7 +729,7 @@ function ScratchReveal() {
               >
                 <ChevronDown size={18} />
                 <span>Keep scrolling</span>
-              </motion.div>
+              </motion.button>
             )}
           </div>
         </div>
@@ -749,7 +750,7 @@ function ScratchReveal() {
 
 function CandidateIntro() {
   return (
-    <section className="candidate-section">
+    <section id="candidate-intro" className="candidate-section">
       <motion.div
         initial={{ opacity: 0, y: 60, filter: 'blur(18px)' }}
         whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}

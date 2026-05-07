@@ -834,7 +834,6 @@ function Plan() {
 
   return (
     <section className="promise-section">
-      <div className="section-kicker gsap-reveal">VP Education plan</div>
       <h2 className="section-title gsap-reveal">My promise is simple: nobody should feel invisible here.</h2>
       <div className="promise-stage">
         {promises.map(({ title, body, icon: Icon }, index) => (

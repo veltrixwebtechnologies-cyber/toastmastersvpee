@@ -123,7 +123,7 @@ body {
   align-items: center;
   font-size: clamp(3.5rem, 14vw, 12rem);
   font-weight: 900;
-  line-height: 0.9;
+  line-height: 1.08;
   letter-spacing: 0;
   color: rgba(255, 255, 255, 0.96);
 }
@@ -147,6 +147,7 @@ body {
   width: 0;
   overflow: hidden;
   white-space: nowrap;
+  line-height: 1.08;
   animation: type-hi 1.05s steps(3, end) 0.8s forwards;
 }
 
@@ -466,8 +467,8 @@ body {
 .portrait-frame img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  object-position: 50% 28%;
+  object-fit: contain;
+  object-position: 50% 50%;
   filter: saturate(0.95) contrast(1.05);
   transition:
     transform 700ms ease,
@@ -475,7 +476,7 @@ body {
 }
 
 .scratch-card.is-revealed .portrait-frame img {
-  transform: scale(1.045);
+  transform: scale(1.015);
   filter: saturate(1.08) contrast(1.08);
 }
 
@@ -1021,13 +1022,16 @@ body {
 }
 
 .moment-toast {
-  left: 50%;
-  top: 1.25rem;
-  width: min(calc(100vw - 2rem), 460px);
-  transform: translateX(-50%);
-  padding: 0.9rem 1rem;
+  left: 0;
+  right: 0;
+  top: 1.05rem;
+  width: min(calc(100vw - 2rem), 430px);
+  margin-inline: auto;
+  padding: 0.72rem 0.9rem;
   text-align: center;
   color: rgba(255, 255, 255, 0.82);
+  font-size: 0.92rem;
+  line-height: 1.35;
 }
 
 .idle-card {
@@ -1175,7 +1179,7 @@ body {
 
 @keyframes type-hi {
   to {
-    width: 1.18em;
+    width: 1.35em;
   }
 }
 
@@ -1371,29 +1375,115 @@ body {
 }
 
 @media (max-width: 860px) {
+  .scene,
+  .story-section,
+  .scratch-section,
+  .candidate-section,
+  .promise-section,
+  .ending {
+    padding-right: 1.15rem;
+    padding-left: 1.15rem;
+  }
+
+  .cinema-line {
+    font-size: clamp(2.35rem, 13vw, 4.7rem);
+    line-height: 1.04;
+  }
+
+  .section-title {
+    font-size: clamp(2.3rem, 12vw, 4.4rem);
+    line-height: 1.03;
+  }
+
+  .vision-line {
+    font-size: clamp(2.05rem, 11vw, 3.8rem);
+    line-height: 1.08;
+  }
+
+  .mic-drift-field {
+    opacity: 0.09;
+  }
+
+  .election-badge {
+    top: 0.75rem;
+    padding: 0.5rem 0.72rem;
+    font-size: 0.68rem;
+  }
+
+  .moment-toast {
+    display: none;
+  }
+
   .scratch-section {
     grid-template-columns: 1fr;
+    gap: 2.25rem;
+  }
+
+  .scratch-copy h2 {
+    max-width: 100%;
+    font-size: clamp(2.65rem, 15vw, 4.9rem);
+    line-height: 1.02;
+  }
+
+  .scratch-copy p:last-child {
+    font-size: 1rem;
+    line-height: 1.55;
   }
 
   .scratch-card {
-    min-height: 560px;
+    min-height: 610px;
     justify-self: stretch;
+  }
+
+  .scratch-reveal {
+    grid-template-rows: minmax(360px, 1fr) auto;
+  }
+
+  .reveal-message h3 {
+    font-size: clamp(1.55rem, 8vw, 2.4rem);
+  }
+
+  .reveal-message p {
+    font-size: 0.95rem;
   }
 
   .candidate-section {
     grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .candidate-copy h2 {
+    font-size: clamp(2.85rem, 15vw, 5.2rem);
+    line-height: 1;
+  }
+
+  .candidate-role {
+    font-size: clamp(1.25rem, 7vw, 2.05rem);
+    line-height: 1.18;
   }
 
   .candidate-line {
     grid-column: auto;
+    font-size: clamp(1.35rem, 7vw, 2.35rem);
+    line-height: 1.18;
   }
 
   .candidate-note {
     grid-column: auto;
+    font-size: 1rem;
   }
 
   .listening-orbit {
-    min-height: 420px;
+    min-height: 360px;
+  }
+
+  .listener-core {
+    width: min(58vw, 210px);
+  }
+
+  .voice-chip {
+    padding: 0.58rem 0.72rem;
+    font-size: 0.76rem;
   }
 
   .plan-grid {
@@ -1409,16 +1499,44 @@ body {
   .promise-card h3 {
     grid-column: auto;
     max-width: 100%;
-    font-size: clamp(2rem, 10vw, 3.8rem);
-    line-height: 1.04;
+    font-size: clamp(1.8rem, 9vw, 3rem);
+    line-height: 1.08;
   }
 
   .promise-card p {
     grid-column: auto;
+    font-size: 0.98rem;
   }
 
-  .plan-card {
-    min-height: auto;
+  .promise-closing {
+    flex-direction: column;
+  }
+
+  .honest-line {
+    font-size: clamp(1.1rem, 5.8vw, 1.55rem);
+  }
+
+  .ending {
+    min-height: 135vh;
+  }
+
+  .final-vote {
+    width: 100%;
+    gap: 0.65rem;
+    padding: 0.95rem 1rem;
+  }
+
+  .final-vote strong {
+    font-size: clamp(1.25rem, 7vw, 2rem);
+  }
+
+  .human-ending {
+    font-size: 0.98rem;
+  }
+
+  .election-ending {
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
   }
 
   .timeline-card {

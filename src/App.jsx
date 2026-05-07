@@ -391,13 +391,30 @@ function Vision() {
 function ScratchReveal() {
   const canvasRef = useRef(null);
   const cardRef = useRef(null);
+  const ctxRef = useRef(null);
+  const ratioRef = useRef(1);
+  const rectCacheRef = useRef(null);
   const scratchEstimateRef = useRef(0);
-  const progressStateRef = useRef(0);
+  const rafIdRef = useRef(0);
+  const lastPointRef = useRef(null);
+  const pendingPointsRef = useRef([]);
+  const scratchedRef = useRef(false);
+  const fullyRevealedRef = useRef(false);
+  const isMobileRef = useRef(false);
+  const brushRadiusRef = useRef(38);
   const [scratched, setScratched] = useState(false);
   const [fullyRevealed, setFullyRevealed] = useState(false);
-  const [scratchProgress, setScratchProgress] = useState(0);
   const [photoMissing, setPhotoMissing] = useState(false);
 
+  // Detect mobile & low-end devices once
+  useEffect(() => {
+    const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    isMobileRef.current = isMobile;
+    // Larger brush on mobile = fewer strokes needed = faster reveal
+    brushRadiusRef.current = isMobile ? 44 : 38;
+  }, []);
+
+  // Draw the scratch cover
   useEffect(() => {
     const canvas = canvasRef.current;
     const card = cardRef.current;
@@ -405,14 +422,20 @@ function ScratchReveal() {
 
     const drawCover = () => {
       const rect = card.getBoundingClientRect();
-      const ratio = window.devicePixelRatio || 1;
-      canvas.width = rect.width * ratio;
-      canvas.height = rect.height * ratio;
+      rectCacheRef.current = { left: rect.left, top: rect.top, width: rect.width, height: rect.height };
+      // Cap DPR: 1.5 on mobile (huge perf win), 2 on desktop
+      const ratio = Math.min(window.devicePixelRatio || 1, isMobileRef.current ? 1.5 : 2);
+      ratioRef.current = ratio;
+      canvas.width = Math.round(rect.width * ratio);
+      canvas.height = Math.round(rect.height * ratio);
       canvas.style.width = `${rect.width}px`;
       canvas.style.height = `${rect.height}px`;
 
-      const ctx = canvas.getContext('2d');
+      const ctx = canvas.getContext('2d', { alpha: true, desynchronized: true });
+      ctxRef.current = ctx;
       ctx.scale(ratio, ratio);
+
+      // Draw foil gradient
       const foil = ctx.createLinearGradient(0, 0, rect.width, rect.height);
       foil.addColorStop(0, '#0d1117');
       foil.addColorStop(0.22, '#2a2520');
@@ -422,21 +445,26 @@ function ScratchReveal() {
       ctx.fillStyle = foil;
       ctx.fillRect(0, 0, rect.width, rect.height);
 
+      // Diagonal stripes — fewer on mobile
       ctx.save();
       ctx.rotate(-0.48);
-      for (let x = -rect.height; x < rect.width * 1.8; x += 15) {
+      const stripeStep = isMobileRef.current ? 22 : 15;
+      for (let x = -rect.height; x < rect.width * 1.8; x += stripeStep) {
         ctx.fillStyle = x % 45 === 0 ? 'rgba(255,255,255,0.13)' : 'rgba(0,0,0,0.12)';
         ctx.fillRect(x, 0, 6, rect.height * 1.8);
       }
       ctx.restore();
 
-      for (let i = 0; i < 170; i += 1) {
+      // Sparkle dots — fewer on mobile
+      const dotCount = isMobileRef.current ? 80 : 170;
+      for (let i = 0; i < dotCount; i += 1) {
         ctx.fillStyle = i % 3 === 0 ? 'rgba(255,255,255,0.11)' : 'rgba(251,191,36,0.09)';
         ctx.beginPath();
         ctx.arc(Math.random() * rect.width, Math.random() * rect.height, Math.random() * 1.4, 0, Math.PI * 2);
         ctx.fill();
       }
 
+      // Header bar
       ctx.fillStyle = 'rgba(0,0,0,0.32)';
       ctx.fillRect(0, 0, rect.width, 58);
       ctx.fillStyle = 'rgba(251,191,36,0.95)';
@@ -447,10 +475,14 @@ function ScratchReveal() {
       ctx.font = '800 11px Inter, sans-serif';
       ctx.textAlign = 'right';
       ctx.fillText('VALID MAY 9', rect.width - 22, 35);
+
+      // Dashed border
       ctx.strokeStyle = 'rgba(255,255,255,0.22)';
       ctx.setLineDash([7, 8]);
       ctx.strokeRect(18, 76, rect.width - 36, rect.height - 152);
       ctx.setLineDash([]);
+
+      // Center text
       ctx.fillStyle = 'rgba(255,255,255,0.82)';
       ctx.font = '900 18px Inter, sans-serif';
       ctx.textAlign = 'center';
@@ -459,62 +491,176 @@ function ScratchReveal() {
       ctx.font = '750 12px Inter, sans-serif';
       ctx.fillText('partial scratch opens the whole card', rect.width / 2, rect.height / 2 + 20);
 
+      // Reset state
       scratchEstimateRef.current = 0;
-      progressStateRef.current = 0;
-      setScratchProgress(0);
+      scratchedRef.current = false;
+      fullyRevealedRef.current = false;
+      lastPointRef.current = null;
+      pendingPointsRef.current = [];
     };
 
     drawCover();
-    const resizeObserver = new ResizeObserver(drawCover);
+    const resizeObserver = new ResizeObserver(() => {
+      drawCover();
+    });
     resizeObserver.observe(card);
     return () => resizeObserver.disconnect();
   }, []);
 
-  const scratchAt = (clientX, clientY) => {
+  // Attach native touch/pointer listeners directly (bypasses React synthetic event overhead)
+  useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || fullyRevealed) return;
-    const rect = canvas.getBoundingClientRect();
-    const ratio = window.devicePixelRatio || 1;
-    const ctx = canvas.getContext('2d');
-    const x = (clientX - rect.left) * ratio;
-    const y = (clientY - rect.top) * ratio;
+    if (!canvas) return;
 
-    ctx.save();
-    ctx.globalCompositeOperation = 'destination-out';
-    ctx.beginPath();
-    ctx.arc(x, y, 38 * ratio, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
+    const addPoint = (clientX, clientY) => {
+      if (fullyRevealedRef.current) return;
+      pendingPointsRef.current.push(clientX, clientY); // flat array, pairs of x,y
+      if (!rafIdRef.current) {
+        rafIdRef.current = requestAnimationFrame(flushFrame);
+      }
+    };
 
-    if (!scratched) setScratched(true);
+    const flushFrame = () => {
+      rafIdRef.current = 0;
+      const ctx = ctxRef.current;
+      const canvas = canvasRef.current;
+      if (!ctx || !canvas || fullyRevealedRef.current) return;
 
-    const totalArea = canvas.width * canvas.height;
-    const scratchArea = Math.PI * (38 * ratio) ** 2;
-    scratchEstimateRef.current += (scratchArea / totalArea) * 1.35;
+      const pts = pendingPointsRef.current;
+      pendingPointsRef.current = [];
+      const len = pts.length;
+      if (len === 0) return;
 
-    const nextProgress = Math.min(100, Math.round(scratchEstimateRef.current * 100));
-    if (nextProgress !== progressStateRef.current) {
-      progressStateRef.current = nextProgress;
-      setScratchProgress(nextProgress);
-    }
+      const cached = rectCacheRef.current;
+      if (!cached) return;
+      const ratio = ratioRef.current;
+      const r = brushRadiusRef.current;
+      const rScaled = r * ratio;
 
-    if (scratchEstimateRef.current > 0.22) {
-      setFullyRevealed(true);
-      canvas.classList.add('is-cleared');
-      window.setTimeout(() => {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-      }, 420);
-    }
-  };
+      ctx.save();
+      ctx.globalCompositeOperation = 'destination-out';
 
-  const handlePointerMove = (event) => {
-    if (event.buttons !== 1 && event.pointerType !== 'touch') return;
-    scratchAt(event.clientX, event.clientY);
-  };
+      // Draw line segments between consecutive points for continuous coverage
+      ctx.lineWidth = rScaled * 2;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
 
-  const handlePointerDown = (event) => {
-    scratchAt(event.clientX, event.clientY);
-  };
+      let prevX = lastPointRef.current ? lastPointRef.current[0] : null;
+      let prevY = lastPointRef.current ? lastPointRef.current[1] : null;
+
+      for (let i = 0; i < len; i += 2) {
+        const x = (pts[i] - cached.left) * ratio;
+        const y = (pts[i + 1] - cached.top) * ratio;
+        if (prevX !== null) {
+          ctx.moveTo(prevX, prevY);
+          ctx.lineTo(x, y);
+        } else {
+          // First point — draw a circle so single taps register
+          ctx.moveTo(x + rScaled, y);
+          ctx.arc(x, y, rScaled, 0, Math.PI * 2);
+        }
+        prevX = x;
+        prevY = y;
+      }
+      ctx.stroke();
+      ctx.fill();
+      ctx.restore();
+
+      // Cache last point for continuous stroke across frames
+      lastPointRef.current = [prevX, prevY];
+
+      // Estimate coverage — use line length for more accurate estimate
+      const totalArea = canvas.width * canvas.height;
+      const pointPairs = len / 2;
+      const areaPerPoint = Math.PI * rScaled * rScaled;
+      scratchEstimateRef.current += (areaPerPoint / totalArea) * pointPairs * 1.2;
+
+      if (!scratchedRef.current) {
+        scratchedRef.current = true;
+        setScratched(true);
+      }
+
+      // Check reveal threshold
+      if (scratchEstimateRef.current > 0.22 && !fullyRevealedRef.current) {
+        fullyRevealedRef.current = true;
+        setFullyRevealed(true);
+        canvas.classList.add('is-cleared');
+        setTimeout(() => {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }, 400);
+      }
+    };
+
+    // --- Native touch events (bypass React for zero overhead) ---
+    const onTouchStart = (e) => {
+      e.preventDefault(); // prevent scroll & 300ms delay
+      const t = e.touches[0];
+      lastPointRef.current = null; // new stroke
+      addPoint(t.clientX, t.clientY);
+    };
+
+    const onTouchMove = (e) => {
+      e.preventDefault();
+      const t = e.touches[0];
+      addPoint(t.clientX, t.clientY);
+    };
+
+    const onTouchEnd = () => {
+      lastPointRef.current = null;
+    };
+
+    // --- Mouse/pointer fallback for desktop ---
+    let mouseDown = false;
+    const onMouseDown = (e) => {
+      mouseDown = true;
+      lastPointRef.current = null;
+      addPoint(e.clientX, e.clientY);
+    };
+
+    const onMouseMove = (e) => {
+      if (!mouseDown) return;
+      addPoint(e.clientX, e.clientY);
+    };
+
+    const onMouseUp = () => {
+      mouseDown = false;
+      lastPointRef.current = null;
+    };
+
+    // Touch events — passive:false is REQUIRED to call preventDefault
+    canvas.addEventListener('touchstart', onTouchStart, { passive: false });
+    canvas.addEventListener('touchmove', onTouchMove, { passive: false });
+    canvas.addEventListener('touchend', onTouchEnd, { passive: true });
+    canvas.addEventListener('touchcancel', onTouchEnd, { passive: true });
+
+    // Mouse events for desktop
+    canvas.addEventListener('mousedown', onMouseDown);
+    canvas.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+
+    // Update rect cache on scroll (for fixed/sticky layouts)
+    const onScroll = () => {
+      const card = cardRef.current;
+      if (card) {
+        const rect = card.getBoundingClientRect();
+        rectCacheRef.current = { left: rect.left, top: rect.top, width: rect.width, height: rect.height };
+      }
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+
+    return () => {
+      canvas.removeEventListener('touchstart', onTouchStart);
+      canvas.removeEventListener('touchmove', onTouchMove);
+      canvas.removeEventListener('touchend', onTouchEnd);
+      canvas.removeEventListener('touchcancel', onTouchEnd);
+      canvas.removeEventListener('mousedown', onMouseDown);
+      canvas.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      window.removeEventListener('scroll', onScroll);
+      if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+    };
+  }, []);
 
   return (
     <section className="scratch-section">
@@ -557,11 +703,6 @@ function ScratchReveal() {
             <p>I want to hear what members need, notice who is holding back, and turn education into moments people remember.</p>
           </div>
         </div>
-        {!fullyRevealed && (
-          <div className="scratch-progress" aria-hidden="true">
-            <span style={{ width: `${Math.max(8, scratchProgress)}%` }} />
-          </div>
-        )}
         <div className="scratch-sparks" aria-hidden="true">
           <i />
           <i />
@@ -571,8 +712,6 @@ function ScratchReveal() {
         <canvas
           ref={canvasRef}
           className="scratch-canvas"
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
         />
       </motion.div>
     </section>

@@ -728,7 +728,7 @@ function ScratchReveal() {
                 className="scroll-indicator-prompt"
               >
                 <ChevronDown size={18} />
-                <span>Keep scrolling</span>
+                <span>Scroll</span>
               </motion.button>
             )}
           </div>

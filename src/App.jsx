@@ -600,6 +600,7 @@ function ScratchReveal() {
         fullyRevealedRef.current = true;
         setFullyRevealed(true);
         canvas.classList.add('is-cleared');
+        canvas.style.pointerEvents = 'none'; // Disable pointer events so user can scroll normally
         setTimeout(() => {
           ctx.clearRect(0, 0, canvas.width, canvas.height);
         }, 400);
@@ -608,13 +609,15 @@ function ScratchReveal() {
 
     // --- Native touch events (bypass React for zero overhead) ---
     const onTouchStart = (e) => {
-      e.preventDefault(); // prevent scroll & 300ms delay
+      if (fullyRevealedRef.current) return; // Allow normal page scroll
+      e.preventDefault(); // prevent scroll & 300ms delay while scratching
       const t = e.touches[0];
       lastPointRef.current = null; // new stroke
       addPoint(t.clientX, t.clientY);
     };
 
     const onTouchMove = (e) => {
+      if (fullyRevealedRef.current) return; // Allow normal page scroll
       e.preventDefault();
       const t = e.touches[0];
       addPoint(t.clientX, t.clientY);

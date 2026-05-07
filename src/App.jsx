@@ -248,6 +248,15 @@ function Opening({ onConnected }) {
             {timedGreeting}.
           </motion.p>
         </div>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 4, duration: 1 }}
+          className="absolute bottom-12 left-1/2 flex -translate-x-1/2 flex-col items-center gap-2 text-white/30"
+        >
+          <span className="text-[0.65rem] font-bold uppercase tracking-[0.2em]">Scroll</span>
+          <ChevronDown size={18} className="animate-bounce opacity-70" />
+        </motion.div>
       </section>
 
       <section className="scene min-h-screen">

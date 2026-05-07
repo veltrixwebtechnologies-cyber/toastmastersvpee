@@ -1559,6 +1559,66 @@ body {
     left: 1rem;
     right: 1rem;
   }
+
+  /* === MOBILE PERFORMANCE: Kill GPU-heavy effects === */
+
+  /* backdrop-filter: blur is the #1 GPU killer on Android Chrome */
+  .election-badge,
+  .hi-input-shell,
+  .timeline-card,
+  .listener-core,
+  .voice-chip,
+  .plan-card,
+  .promise-closing,
+  .final-vote,
+  .idle-card {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  /* Aurora blur(58px) = instant GPU death on mobile */
+  .aurora {
+    filter: blur(24px);
+    animation: none;
+  }
+
+  /* Disable cursor spotlight on touch devices */
+  .cursor-spotlight {
+    display: none;
+  }
+
+  /* Hide mic-drift to remove 4-10 animated DOM elements */
+  .mic-drift-field {
+    display: none;
+  }
+
+  /* Kill all infinite CSS animations that compete with canvas */
+  .scratch-sparks i,
+  .orbit-ring,
+  .chip-one,
+  .chip-two,
+  .chip-three,
+  .promise-icon,
+  .micro-wobble,
+  .best-line {
+    animation: none;
+  }
+
+  /* Simplify scratch card shadows */
+  .scratch-card {
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  }
+
+  .scratch-card:hover {
+    transform: none;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  }
+
+  /* Remove card shimmer animation on mobile */
+  .scratch-card::before {
+    animation: none;
+    opacity: 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

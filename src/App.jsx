@@ -15,6 +15,8 @@ import {
 
 gsap.registerPlugin(ScrollTrigger);
 
+const IS_MOBILE = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0 || window.innerWidth < 860);
+
 const fadeUp = {
   hidden: { opacity: 0, y: 44, filter: 'blur(14px)' },
   visible: {
@@ -27,6 +29,10 @@ const fadeUp = {
 
 function useLenis() {
   useEffect(() => {
+    // Disable Lenis on mobile — it runs a constant RAF loop that
+    // competes with canvas scratch rendering and kills performance
+    if (IS_MOBILE) return;
+
     const lenis = new Lenis({
       duration: 1.35,
       smoothWheel: true,
@@ -96,16 +102,18 @@ function AmbientStage() {
   const { scrollYProgress } = useScroll();
   const y = useTransform(scrollYProgress, [0, 1], ['0%', '34%']);
   const opacity = useTransform(scrollYProgress, [0, 0.2, 0.75, 1], [0.2, 0.42, 0.28, 0.54]);
+  // Fewer mic-drift items on mobile (4 vs 10) to reduce animated DOM elements
+  const micCount = IS_MOBILE ? 4 : 10;
   const micDrift = useMemo(
     () =>
-      Array.from({ length: 10 }, (_, index) => ({
+      Array.from({ length: micCount }, (_, index) => ({
         id: index,
         left: `${(index * 17 + 8) % 96}%`,
         delay: `${(index * 2.7) % 15}s`,
         duration: `${22 + (index % 6) * 4}s`,
         scale: 0.72 + (index % 4) * 0.12,
       })),
-    [],
+    [micCount],
   );
 
   return (
@@ -130,9 +138,10 @@ function AmbientStage() {
           </div>
         ))}
       </div>
-      <div className="cinema-sweep" />
-      <div className="grain" />
-      <div className="scanline" />
+      {/* Hide heavy overlays on mobile — they eat GPU compositing budget */}
+      {!IS_MOBILE && <div className="cinema-sweep" />}
+      {!IS_MOBILE && <div className="grain" />}
+      {!IS_MOBILE && <div className="scanline" />}
       <div className="letterbox top" />
       <div className="letterbox bottom" />
     </div>
@@ -152,6 +161,9 @@ function ProgressRail() {
 
 function CursorSpotlight() {
   useEffect(() => {
+    // No cursor on mobile — skip entirely
+    if (IS_MOBILE) return;
+
     const onMove = (event) => {
       document.documentElement.style.setProperty('--cursor-x', `${event.clientX}px`);
       document.documentElement.style.setProperty('--cursor-y', `${event.clientY}px`);
@@ -161,6 +173,8 @@ function CursorSpotlight() {
     return () => window.removeEventListener('pointermove', onMove);
   }, []);
 
+  // Don't render the spotlight element on mobile at all
+  if (IS_MOBILE) return null;
   return <div className="cursor-spotlight" aria-hidden="true" />;
 }
 
